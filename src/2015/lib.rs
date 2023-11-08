@@ -1,81 +1,64 @@
-// https://adventofcode.com/2015/day/1
+// https://adventofcode.com/2015/
 
-extern crate core;
-use md5;
-use std::collections::HashSet;
+// toggle 461,550 through 564,900
+// turn off 370,39 through 425,839
 
-pub fn day4() -> u32 {
-    let mut data = String::from("ckczppom");
-    let prefix_len = data.len();
-    let mut i = 1;
-    loop {
-        data.push_str(&*i.to_string());
-        let digest = md5::compute(data.as_bytes());
-        if digest[0] == 0 && digest[1] == 0 && digest[2] == 0 {
-            println!("MD5 hash: {:x}", digest);
-            return i;
-        }
-        data.truncate(prefix_len);
-        i+= 1;
-    }
-}
-
-pub fn day3() -> usize {
-    let mut set: HashSet<(i32, i32)> = HashSet::new();
-
-    let mut posA: (i32, i32) = (0, 0);
-    let mut posB: (i32, i32) = (0, 0);
-
-    set.insert(posA);
-    let mut pos: (i32, i32) = (0, 0);
+pub fn day6() -> u32 {
+    // initialize grid
+    let mut grid = [[0u32; 1000]; 1000];
     let input = include_str!("input/raw.txt");
-    for (i, char) in input.chars().enumerate() {
-        if i % 2 == 0 {
-            posB = pos;
-            pos = posA;
-        } else {
-            posA = pos;
-            pos = posB;
-        }
-        match char {
-            'v' => pos.0 += 1,
-            '^' => pos.0 -= 1,
-            '>' => pos.1 += 1,
-            '<' => pos.1 -= 1,
-            _ => println!("unrecognized char: {}", char),
-        }
-        set.insert(pos);
-    }
-
-    return set.len();
-}
-
-pub fn day2() -> u32 {
-    // read input line by line from file
-    let input = include_str!("input/raw.txt");
-    let mut total = 0;
+    let (mut r1, mut c1, mut r2, mut c2);
+    let mut num_idx;
     for line in input.lines() {
-        let mut dimensions: Vec<u32> = line.split('x').map(|x| x.parse().unwrap()).collect();
-        dimensions.sort();
-        let [a, b, c] = <[u32; 3]>::try_from(dimensions).ok().unwrap();
-        total += 2 * a + 2 * b + a * b * c;
+        let v: Vec<&str> = line.split_terminator(&[' ', ','][..]).collect();
+        let f = match v[1] {
+            "on" => {
+                num_idx = 2;
+                |x| x + 1
+            }
+            "off" => {
+                num_idx = 2;
+                |x| {
+                    if x == 0 {
+                        return 0
+                    }
+                    x - 1
+                }
+            }
+            _ => { // toggle
+                num_idx = 1;
+                |x| x + 2
+            }
+        };
+        (r1, c1, r2, c2) = (
+            v[num_idx].parse().unwrap(),
+            v[num_idx + 1].parse().unwrap(),
+            v[num_idx + 3].parse().unwrap(),
+            v[num_idx + 4].parse().unwrap(),
+        );
+        alter_grid(&mut grid, f, r1, c1, r2, c2);
     }
-    total
+    // count 1s
+    let mut count = 0;
+    for r in 0..1000 {
+        for c in 0..1000 {
+            count += grid[r][c];
+        }
+    }
+    count
 }
 
-pub fn day1() -> i32 {
-    let input = "()((((";
-    println!("{}", input.len());
-    let mut floor = 0;
-    for (i, c) in input.chars().enumerate() {
-        if c == '(' {
-            floor += 1;
-        } else {
-            floor -= 1;
-        }
-        if floor == -1 {
-            return (i + 1) as i32;
+pub fn alter_grid<F: Fn(u32) -> u32>(
+    grid: &mut [[u32; 1000]; 1000],
+    f: F,
+    r1: usize,
+    c1: usize,
+    r2: usize,
+    c2: usize,
+) {
+    for r in r1..=r2 {
+        for c in c1..=c2 {
+            grid[r][c] = f(grid[r][c])
         }
     }
-    return -1;
 }
