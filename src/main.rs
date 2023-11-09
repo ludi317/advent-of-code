@@ -1,5 +1,5 @@
 
 
 fn main() {
-    println!("{}", advent_of_code::day6());
+    println!("{}", advent_of_code::day8_p2());
 }

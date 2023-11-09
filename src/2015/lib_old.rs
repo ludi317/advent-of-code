@@ -1,5 +1,157 @@
-
 use std::collections::{HashMap, HashSet};
+
+pub fn day8() -> usize {
+    let input = include_str!("input/raw.txt");
+    let mut ans = 0;
+    for line in input.lines() {
+        let mut delta = 2;
+        let mut chars = line.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                match chars.peek() {
+                    Some(&'x') => {
+                        delta += 3;
+                        chars.next();
+                        chars.next();
+                        chars.next();
+                    }
+                    _ => {
+                        delta += 1;
+                        chars.next();
+                    }
+                }
+            }
+        }
+        ans += delta
+    }
+    ans
+}
+
+pub fn day7() -> u16 {
+    let input = include_str!("input/raw.txt");
+    let mut wires: HashMap<&str, &str> = HashMap::new();
+    for line in input.lines() {
+        let parts: Vec<&str> = line.split(" -> ").collect();
+        wires.insert(parts[1], parts[0]);
+    }
+    let mut cache: HashMap<&str, u16> = HashMap::new();
+    let a_value = eval("a", &wires, &mut cache);
+    cache.clear();
+    cache.insert("b", a_value);
+    eval("a", &wires, &mut cache)
+}
+
+// eval resolves a single variable by looking at its wires
+fn eval<'a>(
+    variable: &'a str,
+    wires: &HashMap<&str, &'a str>,
+    cache: &mut HashMap<&'a str, u16>,
+) -> u16 {
+    // look up in cache
+    if let Some(&n) = cache.get(variable) {
+        return n;
+    }
+
+    // base case - plain number
+    if let Ok(n) = variable.parse::<u16>() {
+        return n;
+    }
+
+    let mut result: u16 = 0;
+    let expr = wires.get(variable).unwrap();
+    let parts: Vec<&str> = expr.split(" ").collect();
+    let first = parts.get(0).unwrap();
+    match parts.len() {
+        1 => {
+            // plain number
+            result = eval(first, wires, cache)
+        }
+        2 => {
+            // NOT
+            assert_eq!(*first, "NOT");
+            let second = parts.get(1).unwrap();
+            result = !eval(second, wires, cache);
+        }
+        3 => {
+            // a binary operation
+            let op = *parts.get(1).unwrap();
+            let first_result = eval(first, wires, cache);
+            let second_result = eval(parts.get(2).unwrap(), wires, cache);
+            match op {
+                "AND" => result = first_result & second_result,
+                "OR" => result = first_result | second_result,
+                "LSHIFT" => result = first_result << second_result,
+                "RSHIFT" => result = first_result >> second_result,
+                _ => eprintln!("unexpected op code: {}", op),
+            }
+        }
+        _ => eprintln!("unexpected parts length: {}", parts.len()),
+    }
+
+    cache.insert(variable, result);
+    result
+}
+
+
+pub fn day6() -> u32 {
+    // initialize grid
+    let mut grid = [[0u32; 1000]; 1000];
+    let input = include_str!("input/raw.txt");
+    let (mut r1, mut c1, mut r2, mut c2);
+    let mut num_idx;
+    for line in input.lines() {
+        let v: Vec<&str> = line.split_terminator(&[' ', ','][..]).collect();
+        let f = match v[1] {
+            "on" => {
+                num_idx = 2;
+                |x| x + 1
+            }
+            "off" => {
+                num_idx = 2;
+                |x| {
+                    if x == 0 {
+                        return 0
+                    }
+                    x - 1
+                }
+            }
+            _ => { // toggle
+                num_idx = 1;
+                |x| x + 2
+            }
+        };
+        (r1, c1, r2, c2) = (
+            v[num_idx].parse().unwrap(),
+            v[num_idx + 1].parse().unwrap(),
+            v[num_idx + 3].parse().unwrap(),
+            v[num_idx + 4].parse().unwrap(),
+        );
+        alter_grid(&mut grid, f, r1, c1, r2, c2);
+    }
+    // count 1s
+    let mut count = 0;
+    for r in 0..1000 {
+        for c in 0..1000 {
+            count += grid[r][c];
+        }
+    }
+    count
+}
+
+pub fn alter_grid<F: Fn(u32) -> u32>(
+    grid: &mut [[u32; 1000]; 1000],
+    f: F,
+    r1: usize,
+    c1: usize,
+    r2: usize,
+    c2: usize,
+) {
+    for r in r1..=r2 {
+        for c in c1..=c2 {
+            grid[r][c] = f(grid[r][c])
+        }
+    }
+}
 
 
 pub fn day5() -> u32 {
