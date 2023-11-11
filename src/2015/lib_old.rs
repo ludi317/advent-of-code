@@ -1,5 +1,105 @@
 use std::collections::{HashMap, HashSet};
 
+pub fn day25() -> u64 {
+    let (row, col) = (3010, 3019);
+    // go down the rows
+    let mut v = row * (row - 1) / 2 + 1;
+    // go across the columns
+    v += col * (col - 1) / 2 + (col - 1) * row;
+    let mut ans = 20151125;
+    for _ in 2..=v {
+        ans = (ans * 252533) % 33554393
+    }
+    ans
+}
+
+struct Edge {
+    node: usize,
+    dist: u32,
+}
+
+
+pub fn day9() -> u32 {
+    let input = include_str!("input/raw.txt");
+
+    // build edges
+    let n = 8;
+    let mut edges: Vec<Vec<Edge>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        edges.push(vec![]);
+    }
+    let mut name_to_num: HashMap<&str, usize> = HashMap::new();
+    for line in input.lines() {
+        let parts: Vec<&str> = line.split(" = ").collect();
+        let dist = parts[1].parse().unwrap();
+        let locs: Vec<&str> = parts[0].split(" to ").collect();
+        let mut len = name_to_num.len();
+        let loc0 = *name_to_num.entry(locs[0]).or_insert(len);
+        len = name_to_num.len();
+        let loc1 = *name_to_num.entry(locs[1]).or_insert(len);
+        edges[loc0].push(Edge { node: loc1, dist });
+        edges[loc1].push(Edge { node: loc0, dist });
+    }
+    assert_eq!(name_to_num.len(), n);
+
+    // build cache: 2-D [1<<n][n] : [visited][last]
+    let mut cache: Vec<Vec<u32>> = Vec::with_capacity(1 << n);
+    for _ in 0..1 << n {
+        cache.push(vec![0; n])
+    }
+
+    let mut min_dist = u32::MAX;
+    for node in 0..n {
+        min_dist = min_dist.min(day9_h(node, &edges, 1 << node, &mut cache, n - 1))
+    }
+
+    min_dist
+}
+
+fn day9_h(
+    last_node: usize,
+    edges: &Vec<Vec<Edge>>,
+    visited: usize,
+    cache: &mut Vec<Vec<u32>>,
+    rem: usize,
+) -> u32 {
+    if rem == 0 {
+        return 0;
+    }
+    if cache[visited][last_node] != 0 {
+        return cache[visited][last_node];
+    }
+    let mut result = u32::MAX;
+
+    let neighs: &Vec<Edge> = &edges[last_node];
+    for neigh in neighs {
+        if visited & 1 << neigh.node == 0 {
+            let path_toll = day9_h(neigh.node, edges, visited | 1 << neigh.node, cache, rem - 1);
+            result = result.min(path_toll + neigh.dist);
+        }
+    }
+
+    cache[visited][last_node] = result;
+    result
+}
+
+
+pub fn day8_p2() -> usize {
+    let input = include_str!("input/raw.txt");
+    let mut ans = 0;
+    for line in input.lines() {
+        let mut delta = 4;
+        for char in line[1..line.len()-1].chars() {
+            if char == '\\' || char == '\"' {
+                delta += 1
+            }
+        }
+        ans += delta
+    }
+    ans
+}
+
+
 pub fn day8() -> usize {
     let input = include_str!("input/raw.txt");
     let mut ans = 0;
