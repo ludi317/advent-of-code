@@ -1,5 +1,3 @@
-
-
 fn main() {
-    advent_of_code::day_10();
+    advent_of_code::day_13();
 }

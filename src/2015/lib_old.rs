@@ -1,5 +1,199 @@
 use std::collections::{HashMap, HashSet};
 
+pub fn day_12() {
+    let input = include_str!("input/raw.txt");
+    let total = sum_nums(input);
+    let red_total = day_12_reds(input);
+    println!("{}", total - red_total);
+}
+
+pub fn sum_nums(s: &str) -> i32 {
+    let mut ans = 0;
+    let mut val: i32 = 0;
+    let mut neg = 1;
+    for c in s.chars() {
+        match c {
+            '0'..='9' => {
+                let d: i32 = (u8::try_from(c).unwrap() - u8::try_from('0').unwrap()) as i32;
+                val = 10 * val + d
+            }
+            '-' => neg = -1,
+            _ => {
+                ans += val * neg;
+                val = 0;
+                neg = 1;
+            }
+        };
+    }
+    ans += val * neg;
+    ans
+}
+
+#[derive(Debug)]
+struct JsObjInterval {
+    start: usize,
+    end: usize,
+}
+
+fn day_12_reds(s: &str) -> i32 {
+    let mut j = 0;
+    let mut indices: Vec<JsObjInterval> = vec![];
+    while let Some(mut red_start) = s[j..].find("red") {
+        red_start += j;
+        let mut i = red_start;
+        j = red_start + 3;
+        let mut curly_count = 0;
+        let mut square_count = 0;
+        while curly_count != 1 && square_count != 1 {
+            i -= 1;
+            match s.chars().nth(i).unwrap() {
+                '{' => curly_count += 1,
+                '}' => curly_count -= 1,
+                '[' => square_count += 1,
+                ']' => square_count -= 1,
+                _ => {}
+            }
+        }
+        if curly_count == 1 {
+            curly_count = 0;
+            while curly_count != -1 {
+                match s.chars().nth(j).unwrap() {
+                    '{' => curly_count += 1,
+                    '}' => curly_count -= 1,
+                    '[' => square_count += 1,
+                    ']' => square_count -= 1,
+                    _ => {}
+                }
+                j += 1;
+            }
+            // eliminate overlapping js objects, only want disjoint intervals
+            while indices.len() > 0 && i < indices[indices.len() - 1].end {
+                indices.pop();
+            }
+            indices.push(JsObjInterval { start: i, end: j })
+        }
+    }
+    let mut total = 0;
+    for ind in indices {
+        total += sum_nums(&s[ind.start..ind.end]);
+    }
+    total
+}
+
+pub fn day_11() {
+    // let input = String::from("ghijklmn");
+    let input = String::from("vzbxxyzz");
+    assert_eq!(input.len(), 8);
+    let mut b = [0u8; 8];
+    for (i, char) in input.chars().enumerate() {
+        b[i] = u8::try_from(char).unwrap() - u8::try_from('a').unwrap();
+    }
+
+    incr(&mut b);
+
+    while !streak(&mut b) || !two_pair(&mut b) {
+        incr(&mut b)
+    }
+
+    for i in 0..b.len() {
+        b[i] += u8::try_from('a').unwrap();
+    }
+
+    println!("{}", std::str::from_utf8(&b).unwrap())
+}
+
+fn streak(b: &mut [u8; 8]) -> bool {
+    let mut two_prev = b[0] as i8;
+    let mut one_prev = b[1] as i8;
+    for i in 2..b.len() {
+        let cur = b[i] as i8;
+        if two_prev == one_prev - 1 && one_prev == cur - 1 {
+            return true;
+        }
+        two_prev = one_prev;
+        one_prev = cur;
+    }
+    false
+}
+
+fn two_pair(b: &mut [u8; 8]) -> bool {
+    let mut forward = b.len();
+    for i in 0..b.len() - 1 {
+        if b[i] == b[i + 1] {
+            forward = i;
+            break;
+        }
+    }
+    let mut backward = b.len();
+    for i in (1..b.len()).rev() {
+        if b[i] == b[i - 1] {
+            backward = i - 1;
+            break;
+        }
+    }
+    backward - forward >= 2
+}
+// increments and enforces rule 2 (no i, o, or l)
+fn incr(b: &mut [u8; 8]) {
+    let mut end = b.len() - 1;
+    b[end] += 1;
+
+    while b[end] == 26 {
+        b[end] = 0;
+        end -= 1;
+        b[end] += 1
+    }
+    // assert_ne!(end, -1, "overflow");
+
+    let the_i: u8 = u8::try_from('i').unwrap() - u8::try_from('a').unwrap();
+    let the_o: u8 = u8::try_from('o').unwrap() - u8::try_from('a').unwrap();
+    let the_l: u8 = u8::try_from('l').unwrap() - u8::try_from('a').unwrap();
+
+    for (i, v) in b.iter().enumerate() {
+        if v == &the_i || v == &the_o || v == &the_l {
+            b[i] += 1;
+            for j in i + 1..b.len() {
+                b[j] = 0;
+            }
+            break;
+        }
+    }
+}
+
+pub fn day_10() {
+    let mut v = String::from("1113222113");
+    let iter = 50;
+    for _ in 0..iter {
+        // println!("{}", v);
+        v = look_and_say(v);
+    }
+    println!("{}", v.len());
+}
+
+fn look_and_say(s: String) -> String {
+    assert!(s.len() > 0);
+    let mut chars = s.chars();
+    let mut prev_char = chars.next().unwrap();
+    let mut prev_count = 1;
+    let mut out_str: String = Default::default();
+
+    while let Some(c) = chars.next() {
+        if c == prev_char {
+            prev_count += 1;
+        } else {
+            out_str.push_str(&*prev_count.to_string());
+            out_str.push(prev_char);
+            prev_count = 1;
+            prev_char = c;
+        }
+    }
+
+    out_str.push_str(&*prev_count.to_string());
+    out_str.push(prev_char);
+    out_str
+}
+
+
 pub fn day25() -> u64 {
     let (row, col) = (3010, 3019);
     // go down the rows
