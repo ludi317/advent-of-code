@@ -1,5 +1,72 @@
 use std::collections::{HashMap, HashSet};
 
+pub fn day_13() {
+    let input = include_str!("input/raw.txt");
+    let mut name_to_num: HashMap<&str, usize> = HashMap::new();
+
+    let n = 8 + 1;
+    let mut edges: Vec<Vec<i32>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        edges.push(vec![0; n]);
+    }
+
+    for line in input.lines() {
+        let parts: Vec<&str> = line.split(" ").collect();
+        let mut len = name_to_num.len();
+        let from = *name_to_num.entry(parts[0]).or_insert(len);
+        len = name_to_num.len();
+        let to = *name_to_num
+            .entry(&parts[10][..(parts[10].len() - 1)])
+            .or_insert(len);
+        let mut points: i32 = parts[3].parse().unwrap();
+        if parts[2] == "lose" {
+            points = -points;
+        }
+        edges[from][to] = points;
+    }
+
+
+    for edge in &edges {
+        println!("{:?}", edge);
+    }
+
+    let mut cache: Vec<Vec<Option<i32>>> = Vec::with_capacity(1 << n);
+    for _ in 0..1 << n {
+        cache.push(vec![None; n]);
+    }
+
+    println!("{}", day_13_h(0, &edges, 1 << 0, &mut cache, n - 1))
+}
+
+pub fn day_13_h(
+    last_node: usize,
+    edges: &Vec<Vec<i32>>,
+    visited: usize,
+    cache: &mut Vec<Vec<Option<i32>>>,
+    rem: usize,
+) -> i32 {
+    if rem == 0 {
+        // connect back to 'A'
+        return edges[last_node][0] + edges[0][last_node];
+    }
+    if let Some(points) = cache[visited][last_node] {
+        return points;
+    }
+
+    let mut result: i32 = i32::MIN;
+    for neigh in 0..edges.len() {
+        if visited & 1 << neigh == 0 {
+            let path = day_13_h(neigh, edges, visited | 1 << neigh, cache, rem - 1);
+            // two-way connection
+            result = result.max(path + edges[neigh][last_node] + edges[last_node][neigh]);
+        }
+    }
+
+    cache[visited][last_node] = Some(result);
+    result
+}
+
+
 pub fn day_12() {
     let input = include_str!("input/raw.txt");
     let total = sum_nums(input);
