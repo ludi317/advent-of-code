@@ -1,5 +1,117 @@
 use std::collections::{HashMap, HashSet};
 
+
+pub fn day_15() {
+    let tsp = 100;
+    // scores is n x p
+    let mut scores: Vec<Vec<i32>> = vec![];
+    let input = include_str!("input/raw.txt");
+    let mut n = 0;
+    for line in input.lines() {
+        let parts: Vec<&str> = line.split(" ").collect();
+        scores.push(vec![
+            (&parts[2][..parts[2].len() - 1]).parse().unwrap(),
+            (&parts[4][..parts[4].len() - 1]).parse().unwrap(),
+            (&parts[6][..parts[6].len() - 1]).parse().unwrap(),
+            (&parts[8][..parts[8].len() - 1]).parse().unwrap(),
+            parts[10].parse().unwrap(),
+        ]);
+        n += 1;
+    }
+    for score in &scores {
+        println!("{:?}", score);
+    }
+
+    let mut counts: Vec<u32> = vec![0u32; n];
+
+    println!("{}", rec(n, &mut counts, tsp, &scores));
+}
+
+fn rec(n: usize, counts: &mut Vec<u32>, rem: u32, scores: &Vec<Vec<i32>>) -> u32 {
+    if n == 1 {
+        let num = counts.len();
+        counts[num - 1] = rem;
+        let p = scores[0].len();
+        let mut sums = vec![0i32; p];
+        for i in 0..num {
+            for j in 0..p {
+                sums[j] += scores[i][j] * counts[i] as i32
+            }
+        }
+        let mut prod: u32 = 1;
+        for i in 0..p-1 {
+            if sums[i] <= 0 {
+                return 0;
+            }
+            prod *= sums[i] as u32;
+        }
+        if sums[p-1] != 500 {
+            return 0
+        }
+        return prod;
+    }
+    let mut result = 0;
+    for v in 0..rem {
+        let num = counts.len();
+        counts[num - n] = v;
+        result = result.max(rec(n - 1, counts, rem - v, scores));
+    }
+    result
+}
+
+
+struct Reindeer {
+    time_block: u32,
+    dist_block: u32,
+
+    run_pace: u32,
+    run_time: u32,
+}
+
+pub fn day_14() {
+    let input = include_str!("input/raw.txt");
+    let mut reindeers: Vec<Reindeer> = Vec::new();
+    for line in input.lines() {
+        let parts: Vec<&str> = line.split(" ").collect();
+        reindeers.push(Reindeer{
+            time_block: parts[6].parse::<u32>().unwrap() + parts[13].parse::<u32>().unwrap(),
+            dist_block: parts[3].parse::<u32>().unwrap() * parts[6].parse::<u32>().unwrap(),
+
+            run_pace: parts[3].parse().unwrap(),
+            run_time: parts[6].parse().unwrap(),
+        })
+    }
+
+    let dur: u32 = 2503;
+    let mut scores: Vec<u32> = vec![0; reindeers.len()];
+    for d in 1..=dur {
+        let mut winner_indices: Vec<usize> = Vec::new();
+        let mut winner_dist = 0;
+        for (i, reindeer) in reindeers.iter().enumerate() {
+            let num_blocks = d / reindeer.time_block;
+            let mut dist = num_blocks * reindeer.dist_block;
+            let rem_secs = d % reindeer.time_block;
+            dist += rem_secs.min(reindeer.run_time) * reindeer.run_pace;
+            if dist > winner_dist {
+                winner_dist = dist;
+                winner_indices.clear();
+                winner_indices.push(i);
+            } else if dist == winner_dist {
+                winner_indices.push(i);
+            }
+        }
+        for winner in winner_indices {
+            scores[winner] += 1;
+        }
+    }
+
+    println!("{:?}", scores);
+
+    let result = scores.iter().max().unwrap();
+
+    println!("{}", result);
+}
+
 pub fn day_13() {
     let input = include_str!("input/raw.txt");
     let mut name_to_num: HashMap<&str, usize> = HashMap::new();

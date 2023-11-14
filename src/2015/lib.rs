@@ -2,54 +2,60 @@
 
 use std::collections::HashMap;
 
-struct Reindeer {
-    time_block: u32,
-    dist_block: u32,
+pub fn day_16() {
+    let mut clues: HashMap<&str, u8> = HashMap::new();
 
-    run_pace: u32,
-    run_time: u32,
-}
+    clues.insert("children", 3);
+    clues.insert("cats", 7);
+    clues.insert("samoyeds", 2);
+    clues.insert("pomeranians", 3);
+    clues.insert("akitas", 0);
+    clues.insert("vizslas", 0);
+    clues.insert("goldfish", 5);
+    clues.insert("trees", 3);
+    clues.insert("cars", 2);
+    clues.insert("perfumes", 1);
 
-pub fn day_14() {
     let input = include_str!("input/raw.txt");
-    let mut reindeers: Vec<Reindeer> = Vec::new();
-    for line in input.lines() {
+    let mut i = 0;
+    'outerLoop: for line in input.lines() {
+        i += 1;
         let parts: Vec<&str> = line.split(" ").collect();
-        reindeers.push(Reindeer{
-            time_block: parts[6].parse::<u32>().unwrap() + parts[13].parse::<u32>().unwrap(),
-            dist_block: parts[3].parse::<u32>().unwrap() * parts[6].parse::<u32>().unwrap(),
 
-            run_pace: parts[3].parse().unwrap(),
-            run_time: parts[6].parse().unwrap(),
-        })
-    }
+        let key1 = &parts[2][..parts[2].len() - 1];
+        let value1: u8 = (&parts[3][..parts[3].len() - 1]).parse().unwrap();
 
-    let dur: u32 = 2503;
-    let mut scores: Vec<u32> = vec![0; reindeers.len()];
-    for d in 1..=dur {
-        let mut winner_indices: Vec<usize> = Vec::new();
-        let mut winner_dist = 0;
-        for (i, reindeer) in reindeers.iter().enumerate() {
-            let num_blocks = d / reindeer.time_block;
-            let mut dist = num_blocks * reindeer.dist_block;
-            let rem_secs = d % reindeer.time_block;
-            dist += rem_secs.min(reindeer.run_time) * reindeer.run_pace;
-            if dist > winner_dist {
-                winner_dist = dist;
-                winner_indices.clear();
-                winner_indices.push(i);
-            } else if dist == winner_dist {
-                winner_indices.push(i);
+        let key2 = &parts[4][..parts[4].len() - 1];
+        let value2: u8 = (&parts[5][..parts[5].len() - 1]).parse().unwrap();
+
+        let key3 = &parts[6][..parts[6].len() - 1];
+        let value3: u8 = parts[7].parse().unwrap();
+
+        let keys = vec![key1, key2, key3];
+        let values = vec![value1, value2, value3];
+
+        for i in 0..3 {
+            let clue_value = *clues.get(keys[i]).unwrap();
+            match keys[i] {
+                "cats" | "trees" => {
+                    if values[i] <= clue_value {
+                        continue 'outerLoop;
+                    }
+                }
+                "pomeranians" | "goldfish" => {
+                    if values[i] >= clue_value {
+                        continue 'outerLoop;
+                    }
+                }
+                _ => {
+                    if values[i] != clue_value {
+                        continue 'outerLoop;
+                    }
+                }
             }
         }
-        for winner in winner_indices {
-            scores[winner] += 1;
-        }
+
+        println!("{}", i);
+        return;
     }
-
-    println!("{:?}", scores);
-
-    let result = scores.iter().max().unwrap();
-
-    println!("{}", result);
 }
