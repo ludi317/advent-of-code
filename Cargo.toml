@@ -9,7 +9,6 @@ edition = "2021"
 md5 = "0.7.0"
 rand = "*"
 
-[lib]
-name = "advent_of_code"
-path = "src/2015/lib.rs"
 
+[[bin]]
+name = "day22"
