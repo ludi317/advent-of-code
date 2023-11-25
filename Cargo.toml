@@ -8,7 +8,11 @@ edition = "2021"
 [dependencies]
 md5 = "0.7.0"
 rand = "*"
+nom = "7"
 
 
 [[bin]]
 name = "day22"
+
+[[bin]]
+name = "day23"

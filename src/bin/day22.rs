@@ -20,29 +20,29 @@ pub struct Spell<'a> {
     name: &'a str,
     hp_self: isize,
     hp_target: isize,
-    mp_self: isize,
+    cost: isize,
     effect_self: Option<Effect>,
     effect_target: Option<Effect>,
 }
 
 impl<'a> fmt::Display for Spell<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_fmt(format_args!("Spell {}, self {:+}|{:+}, target {:+}", self.name, self.hp_self, self.mp_self, self.hp_target))
+        f.write_fmt(format_args!("Spell {}, self {:+}|{:+}, target {:+}", self.name, self.hp_self, self.cost, self.hp_target))
     }
 }
 
 impl<'a> Spell<'a> {
-    fn mana_cost(&self) -> isize {
-        self.mp_self
+    fn cost(&self) -> isize {
+        self.cost
     }
 }
 
 pub const SPELLS: [Spell<'static>; 5] = [
-    Spell { name: "Magic Missile", hp_self: 0, hp_target: -4, mp_self:  53,   effect_self: None,                                                             effect_target: None },
-    Spell { name: "Drain",         hp_self: 2, hp_target: -2, mp_self:  73,   effect_self: None,                                                             effect_target: None },
-    Spell { name: "Shield",        hp_self: 0, hp_target:  0, mp_self: 113,   effect_self: Some(Effect { id: 1, duration: 6, armor: 7, hpt:  0, mpt:   0 }), effect_target: None },
-    Spell { name: "Poison",        hp_self: 0, hp_target:  0, mp_self: 173, effect_target: Some(Effect { id: 2, duration: 6, armor: 0, hpt: -3, mpt:   0 }),   effect_self: None },
-    Spell { name: "Recharge",      hp_self: 0, hp_target:  0, mp_self: 229,   effect_self: Some(Effect { id: 3, duration: 5, armor: 0, hpt:  0, mpt: 101 }), effect_target: None },
+    Spell { name: "Magic Missile", hp_self: 0, hp_target: -4, cost:  53,   effect_self: None,                                                             effect_target: None },
+    Spell { name: "Drain",         hp_self: 2, hp_target: -2, cost:  73,   effect_self: None,                                                             effect_target: None },
+    Spell { name: "Shield",        hp_self: 0, hp_target:  0, cost: 113,   effect_self: Some(Effect { id: 1, duration: 6, armor: 7, hpt:  0, mpt:   0 }), effect_target: None },
+    Spell { name: "Poison",        hp_self: 0, hp_target:  0, cost: 173, effect_target: Some(Effect { id: 2, duration: 6, armor: 0, hpt: -3, mpt:   0 }),   effect_self: None },
+    Spell { name: "Recharge",      hp_self: 0, hp_target:  0, cost: 229,   effect_self: Some(Effect { id: 3, duration: 5, armor: 0, hpt:  0, mpt: 101 }), effect_target: None },
 ];
 
 pub trait Fighter: Sized {
@@ -97,14 +97,14 @@ pub trait Fighter: Sized {
     }
 
     fn can_cast<F: Fighter>(&self, target: &F, spell: &Spell) -> bool {
-        spell.mana_cost() <= self.mana() &&
+        spell.cost() <= self.mana() &&
             (spell.effect_self.is_none() || !self.has_effect(spell.effect_self.as_ref().unwrap())) &&
             (spell.effect_target.is_none() || !target.has_effect(spell.effect_target.as_ref().unwrap()))
     }
 
     fn cast<F: Fighter>(&mut self, target: &mut F, spell: &Spell) -> isize {
         if !self.can_cast(target, spell) { return 0; }
-        self.spend(spell.mp_self);
+        self.spend(spell.cost);
         self.suffer(-spell.hp_self);
         target.suffer(-spell.hp_target);
         if let Some(ref effect) = spell.effect_self {
@@ -113,7 +113,7 @@ pub trait Fighter: Sized {
         if let Some(ref effect) = spell.effect_target {
             target.add_effect(effect.clone());
         }
-        spell.mana_cost()
+        spell.cost()
     }
 }
 
@@ -193,7 +193,7 @@ fn simulate_fights(player: &Player, monster: &Monster, min_mp: &mut isize, mp: i
         if monster.is_dead() { if mp < *min_mp { *min_mp = mp }; continue; }
 
         if !player.can_cast(&monster, &spell) { continue; }
-        if mp + spell.mana_cost() >= *min_mp { continue; }
+        if mp + spell.cost() >= *min_mp { continue; }
 
         let mp_cost = player.cast(&mut monster, spell);
         if player.is_dead() { continue; }
